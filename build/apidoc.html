@@ -1,0 +1,439 @@
+<div class="apidocDiv">
+<style>
+/*csslint
+*/
+.apidocDiv {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.apidocDiv a[href] {
+    color: #33f;
+    font-weight: bold;
+    text-decoration: none;
+}
+.apidocDiv a[href]:hover {
+    text-decoration: underline;
+}
+.apidocCodeCommentSpan {
+    background: #bbf;
+    color: #000;
+    display: block;
+}
+.apidocCodeKeywordSpan {
+    color: #d00;
+    font-weight: bold;
+}
+.apidocCodePre {
+    background: #eef;
+    border: 1px solid;
+    color: #777;
+    padding: 5px;
+    white-space: pre-wrap;
+}
+.apidocFooterDiv {
+    margin-top: 20px;
+    text-align: center;
+}
+.apidocModuleLi {
+    margin-top: 10px;
+}
+.apidocSectionDiv {
+    border-top: 1px solid;
+    margin-top: 20px;
+}
+.apidocSignatureSpan {
+    color: #777;
+    font-weight: bold;
+}
+</style>
+<h1>api documentation for
+    <a
+
+        href="https://github.com/ParsePlatform/parse-dashboard"
+
+    >parse-dashboard (v1.0.25)</a>
+</h1>
+<h4>The Parse Dashboard</h4>
+<div class="apidocSectionDiv"><a
+    href="#apidoc.tableOfContents"
+    id="apidoc.tableOfContents"
+><h1>table of contents</h1></a><ol>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.parse-dashboard">module parse-dashboard</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.parse-dashboard.parse-dashboard">
+            function <span class="apidocSignatureSpan"></span>parse-dashboard
+            <span class="apidocSignatureSpan">(config, allowInsecureHTTP)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.parse-dashboard.Authentication">
+            function <span class="apidocSignatureSpan">parse-dashboard.</span>Authentication
+            <span class="apidocSignatureSpan">(validUsers, useEncryptedPasswords, mountPath)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <span class="apidocSignatureSpan">object <span class="apidocSignatureSpan">parse-dashboard.</span>Authentication.prototype</span>
+
+        </li>
+
+    </ol></li>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.parse-dashboard.Authentication">module parse-dashboard.Authentication</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.parse-dashboard.Authentication.Authentication">
+            function <span class="apidocSignatureSpan">parse-dashboard.</span>Authentication
+            <span class="apidocSignatureSpan">(validUsers, useEncryptedPasswords, mountPath)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.parse-dashboard.Authentication.prototype">module parse-dashboard.Authentication.prototype</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.parse-dashboard.Authentication.prototype.authenticate">
+            function <span class="apidocSignatureSpan">parse-dashboard.Authentication.prototype.</span>authenticate
+            <span class="apidocSignatureSpan">(userToTest, usernameOnly)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.parse-dashboard.Authentication.prototype.initialize">
+            function <span class="apidocSignatureSpan">parse-dashboard.Authentication.prototype.</span>initialize
+            <span class="apidocSignatureSpan">(app)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+</ol></div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.parse-dashboard" id="apidoc.module.parse-dashboard">module parse-dashboard</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.parse-dashboard.parse-dashboard" id="apidoc.element.parse-dashboard.parse-dashboard">
+        function <span class="apidocSignatureSpan"></span>parse-dashboard
+        <span class="apidocSignatureSpan">(config, allowInsecureHTTP)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">parse-dashboard = function (config, allowInsecureHTTP) {
+  var app = express();
+  // Serve public files.
+  app.use(express.static(path.join(__dirname,&#x27;public&#x27;)));
+
+  // Allow setting via middleware
+  if (config.trustProxy &#x26;&#x26; app.disabled(&#x27;trust proxy&#x27;)) {
+    app.enable(&#x27;trust proxy&#x27;);
+  }
+
+  // wait for app to mount in order to get mountpath
+  app.on(&#x27;mount&#x27;, function() {
+    const mountPath = getMount(app.mountpath);
+    const users = config.users;
+    const useEncryptedPasswords = config.useEncryptedPasswords ? true : false;
+    const authInstance = new Authentication(users, useEncryptedPasswords, mountPath);
+    authInstance.initialize(app);
+
+    // CSRF error handler
+    app.use(function (err, req, res, next) {
+      if (err.code !== &#x27;EBADCSRFTOKEN&#x27;) return next(err)
+
+      // handle CSRF token errors here
+      res.status(403)
+      res.send(&#x27;form tampered with&#x27;)
+    });
+
+    // Serve the configuration.
+    app.get(&#x27;/parse-dashboard-config.json&#x27;, function(req, res) {
+      let response = {
+        apps: config.apps,
+        newFeaturesInLatestVersion: newFeaturesInLatestVersion,
+      };
+
+      //Based on advice from Doug Wilson here:
+      //https://github.com/expressjs/express/issues/2518
+      const requestIsLocal =
+        req.connection.remoteAddress === &#x27;127.0.0.1&#x27; ||
+        req.connection.remoteAddress === &#x27;::ffff:127.0.0.1&#x27; ||
+        req.connection.remoteAddress === &#x27;::1&#x27;;
+      if (!requestIsLocal &#x26;&#x26; !req.secure &#x26;&#x26; !allowInsecureHTTP) {
+        //Disallow HTTP requests except on localhost, to prevent the master key from being transmitted in cleartext
+        return res.send({ success: false, error: &#x27;Parse Dashboard can only be remotely accessed via HTTPS&#x27; });
+      }
+
+      if (!requestIsLocal &#x26;&#x26; !users) {
+        //Accessing the dashboard over the internet can only be done with username and password
+        return res.send({ success: false, error: &#x27;Configure a user to access Parse Dashboard remotely&#x27; });
+      }
+
+      const authentication = req.user;
+
+      const successfulAuth = authentication &#x26;&#x26; authentication.isAuthenticated;
+      const appsUserHasAccess = authentication &#x26;&#x26; authentication.appsUserHasAccessTo;
+
+      if (successfulAuth) {
+        if (appsUserHasAccess) {
+          // Restric access to apps defined in user dictionary
+          // If they didn&#x27;t supply any app id, user will access all apps
+          response.apps = response.apps.filter(function (app) {
+            return appsUserHasAccess.find(appUserHasAccess =&#x3e; {
+              return app.appId == appUserHasAccess.appId
+            })
+          });
+        }
+        // They provided correct auth
+        return res.json(response);
+      }
+
+      if (users) {
+        //They provided incorrect auth
+        return res.sendStatus(401);
+      }
+
+      //They didn&#x27;t provide auth, and have configured the dashboard to not need auth
+      //(ie. didn&#x27;t supply usernames and passwords)
+      if (requestIsLocal) {
+        //Allow no-auth access on localhost only, if they have configured the dashboard to not need auth
+        return res.json(response);
+      }
+      //We shouldn&#x27;t get here. Fail closed.
+      res.send({ success: false, error: &#x27;Something went wrong.&#x27; });
+    });
+
+    // Serve the app icons. Uses the optional `iconsFolder` parameter as
+    // directory name, that was setup in the config file.
+    // We are explicitly not using `__dirpath` here because one may be
+    // running parse-dashboard from globally installed npm.
+    if (config.iconsFolder) {
+      try {
+        var stat = fs.statSync(config.iconsFolder);
+        if (stat.isDirectory()) {
+          app.use(&#x27;/appicons&#x27;, express.static(config.iconsFolder));
+          //Check also if the icons really exist
+          checkIfIconsExistForApps(config.apps, config.iconsFolder);
+        }
+      } catch (e) {
+        // Directory doesn&#x27;t exist or something.
+        console.warn(&#x22;Iconsfolder at path: &#x22; + config.iconsFolder +
+          &#x22; not found!&#x22;);
+      }
+    }
+
+    app.get(&#x27;/login&#x27;, csrf(), function(req, res) {
+      if (!users || (req.user &#x26;&#x26; req.user.isAuthenticated)) {
+        return res.redirec ...</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.parse-dashboard.Authentication" id="apidoc.element.parse-dashboard.Authentication">
+        function <span class="apidocSignatureSpan">parse-dashboard.</span>Authentication
+        <span class="apidocSignatureSpan">(validUsers, useEncryptedPasswords, mountPath)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function Authentication(validUsers, useEncryptedPasswords, mountPath) {
+  this.validUsers = validUsers;
+  this.useEncryptedPasswords = useEncryptedPasswords || false;
+  this.mountPath = mountPath;
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+
+
+</div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.parse-dashboard.Authentication" id="apidoc.module.parse-dashboard.Authentication">module parse-dashboard.Authentication</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.parse-dashboard.Authentication.Authentication" id="apidoc.element.parse-dashboard.Authentication.Authentication">
+        function <span class="apidocSignatureSpan">parse-dashboard.</span>Authentication
+        <span class="apidocSignatureSpan">(validUsers, useEncryptedPasswords, mountPath)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function Authentication(validUsers, useEncryptedPasswords, mountPath) {
+  this.validUsers = validUsers;
+  this.useEncryptedPasswords = useEncryptedPasswords || false;
+  this.mountPath = mountPath;
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.parse-dashboard.Authentication.prototype" id="apidoc.module.parse-dashboard.Authentication.prototype">module parse-dashboard.Authentication.prototype</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.parse-dashboard.Authentication.prototype.authenticate" id="apidoc.element.parse-dashboard.Authentication.prototype.authenticate">
+        function <span class="apidocSignatureSpan">parse-dashboard.Authentication.prototype.</span>authenticate
+        <span class="apidocSignatureSpan">(userToTest, usernameOnly)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function authenticate(userToTest, usernameOnly) {
+  var appsUserHasAccessTo = null;
+  var matchingUsername = null;
+
+  //they provided auth
+  let isAuthenticated = userToTest &#x26;&#x26;
+    //there are configured users
+    this.validUsers &#x26;&#x26;
+    //the provided auth matches one of the users
+    this.validUsers.find(user =&#x3e; {
+      let isAuthenticated = false;
+      let usernameMatches = userToTest.name == user.user;
+      let passwordMatches = this.useEncryptedPasswords &#x26;&#x26; !usernameOnly ? bcrypt.compareSync(userToTest.pass, user.pass) : userToTest
+.pass == user.pass;
+      if (usernameMatches &#x26;&#x26; (usernameOnly || passwordMatches)) {
+        isAuthenticated = true;
+        matchingUsername = user.user;
+        // User restricted apps
+        appsUserHasAccessTo = user.apps || null;
+      }
+
+      return isAuthenticated;
+    }) ? true : false;
+
+  return {
+    isAuthenticated,
+    matchingUsername,
+    appsUserHasAccessTo
+  };
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+this.mountPath = mountPath;
+}
+
+function initialize(app) {
+var self = this;
+passport.use(&#x27;local&#x27;, new LocalStrategy(
+  function(username, password, cb) {
+    var match = self.<span class="apidocCodeKeywordSpan">authenticate</span>({
+      name: username,
+      pass: password
+    });
+    if (!match.matchingUsername) {
+      return cb(null, false, { message: &#x27;Invalid username or password&#x27; });
+    }
+    cb(null, match.matchingUsername);
+...</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.parse-dashboard.Authentication.prototype.initialize" id="apidoc.element.parse-dashboard.Authentication.prototype.initialize">
+        function <span class="apidocSignatureSpan">parse-dashboard.Authentication.prototype.</span>initialize
+        <span class="apidocSignatureSpan">(app)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function initialize(app) {
+  var self = this;
+  passport.use(&#x27;local&#x27;, new LocalStrategy(
+    function(username, password, cb) {
+      var match = self.authenticate({
+        name: username,
+        pass: password
+      });
+      if (!match.matchingUsername) {
+        return cb(null, false, { message: &#x27;Invalid username or password&#x27; });
+      }
+      cb(null, match.matchingUsername);
+    })
+  );
+
+  passport.serializeUser(function(username, cb) {
+    cb(null, username);
+  });
+
+  passport.deserializeUser(function(username, cb) {
+    var user = self.authenticate({
+      name: username
+    }, true);
+    cb(null, user);
+  });
+
+  app.use(require(&#x27;connect-flash&#x27;)());
+  app.use(require(&#x27;body-parser&#x27;).urlencoded({ extended: true }));
+  app.use(require(&#x27;cookie-session&#x27;)({
+    key    : &#x27;parse_dash&#x27;,
+    secret : &#x27;magic&#x27;,
+    cookie : {
+      maxAge: (2 * 7 * 24 * 60 * 60 * 1000) // 2 weeks
+    }
+  }));
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  app.post(&#x27;/login&#x27;,
+    csrf(),
+    passport.authenticate(&#x27;local&#x27;, {
+      successRedirect: `${self.mountPath}apps`,
+      failureRedirect: `${self.mountPath}login`,
+      failureFlash : true
+    })
+  );
+
+  app.get(&#x27;/logout&#x27;, function(req, res){
+    req.logout();
+    res.redirect(`${self.mountPath}login`);
+  });
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">...
+
+  // wait for app to mount in order to get mountpath
+  app.on(&#x27;mount&#x27;, function() {
+    const mountPath = getMount(app.mountpath);
+    const users = config.users;
+    const useEncryptedPasswords = config.useEncryptedPasswords ? true : false;
+    const authInstance = new Authentication(users, useEncryptedPasswords, mountPath);
+    authInstance.<span class="apidocCodeKeywordSpan">initialize</span>(app);
+
+    // CSRF error handler
+    app.use(function (err, req, res, next) {
+if (err.code !== &#x27;EBADCSRFTOKEN&#x27;) return next(err)
+
+// handle CSRF token errors here
+res.status(403)
+...</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocFooterDiv">
+    [ this document was created with
+    <a href="https://github.com/kaizhu256/node-utility2" target="_blank">utility2</a>
+    ]
+</div>
+</div>
